@@ -27,24 +27,26 @@
 
   NOTE if your ESP fails to program press the BOOT button during programm when the IDE is "looking for the ESP"
 */
-
+#include <WiFiManager.h>
 #include <ESP8266WiFi.h>       // standard library
 #include <ESP8266WebServer.h>  // standard library
 #include "WebData.h"           // .h file that stores your html page code
 
 // here you post web pages to your home's intranet which will make page debugging easier, as you just need to refresh the browser as opposed to reconnection to the web server.
-// comment below line on your preference.
-#define USE_INTRANET
+// uncomment one line on your preference.
+//#define USE_INTRANET
+//#define USE_AP
+#define USE_WiFi
 
-// replace this with your homes intranet connect parameters
-#define LOCAL_SSID "Dialog 4G"
-#define LOCAL_PASS "DABDFFF8DE4"
+// replace this with your homes intranet connect parameters (for Option 1)
+#define LOCAL_SSID "M30s"
+#define LOCAL_PASS "123456789"
 
-// once you are ready to go live, these settings are what you client will connect to
-#define AP_SSID "TestWebSite"
-#define AP_PASS "023456789"
+// once you are ready to go live, these settings are what you client will connect to (for Option 2 and Option 3)
+#define AP_SSID "Aquamate Tank 1"
+#define AP_PASS "11111111"
 
-// start your defines for pins for sensors, outputs etc.
+// defines for pins for sensors, outputs etc.
 #define PIN_OUT_0 D4  // Output 1 (On board LED is D4 or GPIO2)
 #define PIN_OUT_1 D2  // Output 2
 #define PIN_PWM D1    // PWM signal to control a fan speed
@@ -72,7 +74,7 @@ char buf[32];
 IPAddress ip;
 
 // definitions of your desired intranet created by the ESP32
-IPAddress PageIP(192, 168, 1, 1);
+IPAddress PageIP(192, 168, 1, 184);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
@@ -98,27 +100,54 @@ void setup() {
   // just an update to progress
   Serial.println("starting server");
 
-  // if you have this #define USE_INTRANET, you will connect to your home intranet, again makes debugging easier.
+  //  Option 1
+  //  if you have this #define USE_INTRANET, you will connect to your home intranet, again makes debugging easier.
+  //  for this you can only connect to above defined home intranet
   #ifdef USE_INTRANET
     WiFi.begin(LOCAL_SSID, LOCAL_PASS);
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.print(".");
     }
-    ip = WiFi.localIP();
+    Serial.println();
+    Serial.println("WiFi connected..!");
+    printWifiStatus();
   #endif
 
+  // Option 2
   // if you don't have #define USE_INTRANET, ESP will create an access point.
   // (an intranet with no internet connection. But Clients can connect to your intranet and see the web page you are about to serve up.)
-  #ifndef USE_INTRANET
+  #ifdef USE_AP
+    if (!WiFi.softAPConfig(PageIP, gateway, subnet)) {
+      Serial.println("Failed to configure");
+    }
+    delay(100);
     WiFi.softAP(AP_SSID, AP_PASS);
     delay(100);
-    WiFi.softAPConfig(PageIP, gateway, subnet);
-    delay(100);
     ip = WiFi.softAPIP();
+    Serial.print("Access Point Created..!");
+    Serial.print("SSID: "); Serial.println(AP_SSID);
+    Serial.print("IP address: "); Serial.println(ip);
   #endif
 
-  printWifiStatus();
+  //  Option 3
+  //  Connect to an available any WiFi network (should know the password)
+  #ifdef USE_WiFi
+    WiFi.mode(WIFI_STA);
+    WiFiManager wm;
+    wm.resetSettings();  //reset previous ssids
+    bool res;
+    res  = wm.autoConnect(AP_SSID, AP_PASS);
+    Serial.println();
+    if (!res) {
+      Serial.println("Failed");
+      ESP.restart();
+    }
+    else {
+      Serial.println("WiFi connected..!");
+    }
+    printWifiStatus();
+  #endif
 
   // these calls will handle data coming back from your web page
   // this one is a page request, upon ESP getting / string the web page will be sent
@@ -141,6 +170,7 @@ void setup() {
 }
 
 void loop() {
+
   // you main loop that measures, processes, runs code, etc.
   // note that handling the "on" strings from the web page are NOT in the loop
   // that processing is in individual functions all managed by the wifi lib
@@ -212,10 +242,10 @@ void ProcessButton_0() {
   // note you must have reading code in the java script
   /*
     if (Device0) {
-    server.send(200, "text/plain", "1"); //Send web page
+      server.send(200, "text/plain", "1"); //Send web page
     }
     else {
-    server.send(200, "text/plain", "0"); //Send web page
+      server.send(200, "text/plain", "0"); //Send web page
     }
   */
 }
@@ -237,11 +267,11 @@ void ProcessButton_1() {
   // if you want to send feedback immediataly
   // note you must have proper code in the java script to read this data stream
   /*
-    if (some_process) {
-    server.send(200, "text/plain", "SUCCESS"); //Send web page
+    if (Device1) {
+      server.send(200, "text/plain", "SUCCESS"); //Send web page
     }
     else {
-    server.send(200, "text/plain", "FAIL"); //Send web page
+      server.send(200, "text/plain", "FAIL"); //Send web page
     }
   */
 }
@@ -308,6 +338,7 @@ void printWifiStatus() {
   Serial.println(WiFi.SSID());
 
   // print your WiFi shield's IP address:
+  ip = WiFi.localIP();
   Serial.print("IP Address: ");
   Serial.println(ip);
 

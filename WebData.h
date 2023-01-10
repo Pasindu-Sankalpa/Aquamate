@@ -328,7 +328,6 @@ const char PAGE_MAIN[] PROGMEM = R"=====(
       xhttp.send();
     }
 
-
     // function to handle button press from HTML code above
     // and send a processing string back to server
     // this processing string is use in the .on method
