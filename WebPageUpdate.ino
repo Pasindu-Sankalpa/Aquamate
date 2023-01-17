@@ -25,12 +25,18 @@
   flash size 4mb
   partition scheme default
 
-  NOTE if your ESP fails to program press the BOOT button during programm when the IDE is "looking for the ESP"
+  NOTE: if your ESP fails to program press the BOOT button during programm when the IDE is "looking for the ESP"
+  NOTE: there are 5 changes to make to switch from ESP32 to ESP8266 or vise versa.
 */
 #include <WiFiManager.h>
+#include "WebData.h"           // .h file that stores your html page code
+
+// >>>>>>>>>>>>>>>>> For ESP8266
 #include <ESP8266WiFi.h>       // standard library
 #include <ESP8266WebServer.h>  // standard library
-#include "WebData.h"           // .h file that stores your html page code
+// >>>>>>>>>>>>>>>>> For ESP32
+// #include <WiFi.h>       // standard library
+// #include <WebServer.h>  // standard library
 
 // here you post web pages to your home's intranet which will make page debugging easier, as you just need to refresh the browser as opposed to reconnection to the web server.
 // uncomment one line on your preference.
@@ -70,6 +76,11 @@ char XML[2048];
 // just some buffer holder for char operations
 char buf[32];
 
+// >>>>>>>>>>>>>>>>> Setting PWM properties (Only for ESP32)
+// const int pwm_ch = 0;
+// const int pwm_freq = 1000;
+// const int pwm_res = 8;
+
 // variable for the IP address
 IPAddress ip;
 
@@ -89,7 +100,10 @@ ESP8266WebServer server(80);
 void setup() {
 
   // standard stuff here
+  // >>>>>>>>>>>>>>>>> For ESP8266
   Serial.begin(115200);
+  // >>>>>>>>>>>>>>>>> For ESP32
+  // Serial.begin(9600);
 
   pinMode(PIN_PWM, OUTPUT);
   pinMode(PIN_OUT_0, OUTPUT);
@@ -100,7 +114,13 @@ void setup() {
   digitalWrite(PIN_OUT_1, Device1);
 
   // configure PWM functionalitites
+  // >>>>>>>>>>>>>>>>> For ESP8266
   analogWrite(PIN_PWM, PWMRange);
+  // >>>>>>>>>>>>>>>>> For ESP32
+  // ledcSetup(pwm_ch, pwm_freq, pwm_res);
+  // ledcAttachPin(PIN_PWM, pwm_ch); //there are 16 pwm channels from 0 to 15
+  // ledcWrite(pwm_ch, PWMRange);
+  
   delay(1000);
 
   // just an update to progress
@@ -221,7 +241,10 @@ void UpdateSlider() {
   PWMRange = t_state.toInt();
   Serial.print("UpdateSlider"); Serial.println(PWMRange);
   // now set the PWM duty cycle
+  // >>>>>>>>>>>>>>>>> For ESP8266
   analogWrite(PIN_PWM, PWMRange);
+  // >>>>>>>>>>>>>>>>> For ESP32
+  // ledcWrite(pwm_ch, PWMRange);
 
   // YOU MUST SEND SOMETHING BACK TO THE WEB PAGE--BASICALLY TO KEEP IT LIVE
 
