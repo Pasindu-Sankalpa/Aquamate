@@ -39,8 +39,8 @@
 #define USE_WiFi
 
 // replace this with your homes intranet connect parameters (for Option 1)
-#define LOCAL_SSID "M30s"
-#define LOCAL_PASS "123456789"
+#define LOCAL_SSID "Dialog 4G"
+#define LOCAL_PASS "DABDFFF8DE4"
 
 // once you are ready to go live, these settings are what you client will connect to (for Option 2 and Option 3)
 #define AP_SSID "Aquamate Tank 1"
@@ -73,12 +73,17 @@ char buf[32];
 // variable for the IP address
 IPAddress ip;
 
-// definitions of your desired intranet created by the ESP32
-IPAddress PageIP(192, 168, 1, 184);
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 255, 0);
+// static wifi configuration, instead of DHCP
+IPAddress s_PageIP(192, 168, 1, 184);
+IPAddress s_gateway(192, 168, 1, 1);
+IPAddress s_subnet(255, 255, 255, 0);
 
-// gotta create a server
+// custom AP configuration
+IPAddress PageIP(10,0,1,1);
+IPAddress gateway(10,0,1,1);
+IPAddress subnet(255,255,255,0);
+
+// declare an object of ESP8266WebServer library
 ESP8266WebServer server(80);
 
 void setup() {
@@ -96,51 +101,62 @@ void setup() {
 
   // configure PWM functionalitites
   analogWrite(PIN_PWM, PWMRange);
+  delay(1000);
 
   // just an update to progress
-  Serial.println("starting server");
+  Serial.print("Starting server \n");
+  Serial.print("--------------- \n");
 
-  //  Option 1
-  //  if you have this #define USE_INTRANET, you will connect to your home intranet, again makes debugging easier.
-  //  for this you can only connect to above defined home intranet
+  // Option 1
+  // if you have this #define USE_INTRANET, you will connect to your home intranet, again makes debugging easier.
+  // for this you can only connect to above defined home intranet
   #ifdef USE_INTRANET
+    //static ip configuration
+    if (!WiFi.config(s_PageIP, s_gateway, s_subnet)) {
+      Serial.print("WiFi Configuration failed. \n");
+    }
     WiFi.begin(LOCAL_SSID, LOCAL_PASS);
+    // check ESP is connected to a wi-fi network
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.print(".");
     }
-    Serial.println();
-    Serial.println("WiFi connected..!");
+    Serial.print("\n");
+    Serial.print("WiFi connected..! \n");
     printWifiStatus();
   #endif
 
   // Option 2
-  // if you don't have #define USE_INTRANET, ESP will create an access point.
+  // if you have this #define USE_AP, ESP will create a soft access point.
   // (an intranet with no internet connection. But Clients can connect to your intranet and see the web page you are about to serve up.)
   #ifdef USE_AP
-    if (!WiFi.softAPConfig(PageIP, gateway, subnet)) {
-      Serial.println("Failed to configure");
-    }
+    //set custom ip for portal
+    WiFi.softAPConfig(PageIP, gateway, subnet);
     delay(100);
     WiFi.softAP(AP_SSID, AP_PASS);
     delay(100);
     ip = WiFi.softAPIP();
-    Serial.print("Access Point Created..!");
+    Serial.print("Access Point Created..! \n");
     Serial.print("SSID: "); Serial.println(AP_SSID);
     Serial.print("IP address: "); Serial.println(ip);
   #endif
 
-  //  Option 3
-  //  Connect to an available any WiFi network (should know the password)
+  // Option 3
+  // if you have this #define USE_WiFi, ESP will use WiFi manager.
+  // Connect to an available any WiFi network (should know the password)
   #ifdef USE_WiFi
     WiFi.mode(WIFI_STA);
     WiFiManager wm;
-    wm.resetSettings();  //reset previous ssids
+    wm.resetSettings(); //reset previous ssids
+    //set custom ip for portal
+    wm.setAPStaticIPConfig(PageIP, gateway, subnet);
+    //static ip configuration
+    wm.setSTAStaticIPConfig(s_PageIP, s_gateway, s_subnet);
     bool res;
     res  = wm.autoConnect(AP_SSID, AP_PASS);
     Serial.println();
     if (!res) {
-      Serial.println("Failed");
+      Serial.println("WiFi connecting failed.");
       ESP.restart();
     }
     else {
@@ -148,6 +164,8 @@ void setup() {
     }
     printWifiStatus();
   #endif
+
+  Serial.print("\n\n");
 
   // these calls will handle data coming back from your web page
   // this one is a page request, upon ESP getting / string the web page will be sent
