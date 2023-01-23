@@ -7,4 +7,4 @@ You will need an ESP32 and some open source libraries.
 <br>
 <br>
 
-![header image](screen.jpg)
+![header image](screen.jpeg)
