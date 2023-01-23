@@ -26,22 +26,33 @@
   partition scheme default
 
   NOTE: if your ESP fails to program press the BOOT button during programm when the IDE is "looking for the ESP"
-  NOTE: there are 5 changes to make to switch from ESP32 to ESP8266 or vise versa.
+  NOTE: there are 6 changes to make to switch from ESP32 to ESP8266 or vise versa.
 */
-#include <WiFiManager.h>
+#include <WiFiManager.h>       // library for Option 3
 #include "WebData.h"           // .h file that stores your html page code
 
-// >>>>>>>>>>>>>>>>> For ESP8266
-#include <ESP8266WiFi.h>       // standard library
-#include <ESP8266WebServer.h>  // standard library
-// >>>>>>>>>>>>>>>>> For ESP32
-// #include <WiFi.h>       // standard library
-// #include <WebServer.h>  // standard library
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[1] For ESP8266
+// #include <ESP8266WiFi.h>       // standard library
+// #include <ESP8266WebServer.h>  // standard library
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[1] For ESP32
+#include <WiFi.h>       // standard library
+// Note: For ESP32,
+// ADC1 controls ADC function for pins GPIO 32-39
+// ADC2 controls ADC function for pins GPIO 0, 2, 4, 12-15, 25-27
+// ADC2 pins cannot work when WiFi is in use.
+#include <WebServer.h>  // standard library
+
+// Libraries for temperature sensor
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+// Libraries for servo, normal arduino "Servo.h" library doesn't work with ESP32
+#include <ESP32_Servo.h>
 
 // here you post web pages to your home's intranet which will make page debugging easier, as you just need to refresh the browser as opposed to reconnection to the web server.
 // uncomment one line on your preference.
-//#define USE_INTRANET
-//#define USE_AP
+// #define USE_INTRANET
+// #define USE_AP
 #define USE_WiFi
 
 // replace this with your homes intranet connect parameters (for Option 1)
@@ -53,22 +64,30 @@
 #define AP_PASS "11111111"
 
 // defines for pins for sensors, outputs etc.
-#define PIN_OUT_0 D4  // Output 1 (On board LED is D4 or GPIO2)
-#define PIN_OUT_1 D2  // Output 2
-#define PIN_PWM D1    // PWM signal to control a fan speed
-#define PIN_A0 D8     // some analog input sensor
-#define PIN_A1 A0     // some analog input sensor //not working
+#define PIN_OUT_0 16  // Output 1 (On board LED is D4 or GPIO2)
+#define PIN_OUT_1 18  // Output 2
+#define PIN_PWM 27    // PWM signal to control a fan speed
+#define PIN_A0 33     // analog input of pH sensor
+#define PIN_A1 14     // anaog input of temperature sensor
 
 // variables to store measure data and sensor states
 bool Device0 = false, Device1 = false;
 
 int PWMRange = 0;
-int DutyCycle = 0;
 
-int BitsA0 = 0, BitsA1 = 0;
-float VoltsA0 = 0, VoltsA1 = 0;
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[2] Setting of PWM properties (Only for ESP32)
+const int pwm_ch = 0;
+const int pwm_freq = 1000;
+const int pwm_res = 8;
+
+int BitsA0 = 0;
+float VoltsA0 = 0;
+float BitsA1 = 0, VoltsA1 = 0; // temperature in Celsius
 
 uint32_t SensorUpdate = 0;
+uint32_t FeederUpdate = 0;
+uint32_t FeederDelay = 0;
+bool servo_state = false;
 
 // the XML array size needs to be bigger that your maximum expected size. 2048 is way too big for this example
 char XML[2048];
@@ -76,17 +95,22 @@ char XML[2048];
 // just some buffer holder for char operations
 char buf[32];
 
-// >>>>>>>>>>>>>>>>> Setting PWM properties (Only for ESP32)
-// const int pwm_ch = 0;
-// const int pwm_freq = 1000;
-// const int pwm_res = 8;
+// pH sensor parameters
+int avg_phValue;   //Store the average value of the sensor feedback
+int ph_buf[10],temp;
+
+// temperature sensor parameters
+OneWire oneWire(PIN_A1);                // setup a oneWire instance
+DallasTemperature tempSensor(&oneWire); // pass oneWire to DallasTemperature library
+
+Servo servo_1;
 
 // variable for the IP address
 IPAddress ip;
 
 // static wifi configuration, instead of DHCP
-IPAddress s_PageIP(192, 168, 1, 184);
-IPAddress s_gateway(192, 168, 1, 1);
+IPAddress s_PageIP(192, 168, 0, 170);
+IPAddress s_gateway(192, 168, 0, 1);
 IPAddress s_subnet(255, 255, 255, 0);
 
 // custom AP configuration
@@ -95,17 +119,22 @@ IPAddress gateway(10,0,1,1);
 IPAddress subnet(255,255,255,0);
 
 // declare an object of ESP8266WebServer library
-ESP8266WebServer server(80);
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[3] For ESP8266
+// ESP8266WebServer server(80);
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[3] For ESP32
+WebServer server(80);
 
 void setup() {
 
   // standard stuff here
-  // >>>>>>>>>>>>>>>>> For ESP8266
-  Serial.begin(115200);
-  // >>>>>>>>>>>>>>>>> For ESP32
-  // Serial.begin(9600);
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[4] For ESP8266
+  //Serial.begin(115200);
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[4] For ESP32
+  Serial.begin(9600);
+  tempSensor.begin();    // initialize the sensor
 
-  pinMode(PIN_PWM, OUTPUT);
+  servo_1.attach(PIN_PWM);
+  servo_1.write(90);
   pinMode(PIN_OUT_0, OUTPUT);
   pinMode(PIN_OUT_1, OUTPUT);
 
@@ -114,9 +143,9 @@ void setup() {
   digitalWrite(PIN_OUT_1, Device1);
 
   // configure PWM functionalitites
-  // >>>>>>>>>>>>>>>>> For ESP8266
-  analogWrite(PIN_PWM, PWMRange);
-  // >>>>>>>>>>>>>>>>> For ESP32
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[5] For ESP8266
+  // analogWrite(PIN_PWM, PWMRange);
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[5] For ESP32
   // ledcSetup(pwm_ch, pwm_freq, pwm_res);
   // ledcAttachPin(PIN_PWM, pwm_ch); //there are 16 pwm channels from 0 to 15
   // ledcWrite(pwm_ch, PWMRange);
@@ -167,11 +196,14 @@ void setup() {
   #ifdef USE_WiFi
     WiFi.mode(WIFI_STA);
     WiFiManager wm;
-    wm.resetSettings(); //reset previous ssids
+    // If we don't reset WiFi manager settings, ESP will automatically connect to the previously connected network, if it's password is unchanged.
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    //wm.resetSettings(); //reset previous ssids
     //set custom ip for portal
     wm.setAPStaticIPConfig(PageIP, gateway, subnet);
     //static ip configuration
-    wm.setSTAStaticIPConfig(s_PageIP, s_gateway, s_subnet);
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    //wm.setSTAStaticIPConfig(s_PageIP, s_gateway, s_subnet);
     bool res;
     res  = wm.autoConnect(AP_SSID, AP_PASS);
     Serial.println();
@@ -208,7 +240,6 @@ void setup() {
 }
 
 void loop() {
-
   // you main loop that measures, processes, runs code, etc.
   // note that handling the "on" strings from the web page are NOT in the loop
   // that processing is in individual functions all managed by the wifi lib
@@ -218,16 +249,53 @@ void loop() {
   if ((millis() - SensorUpdate) >= 50) {
     //Serial.println("Reading Sensors");
     SensorUpdate = millis();
-    BitsA0 = analogRead(PIN_A0);
-    BitsA1 = analogRead(PIN_A1);
 
-    // standard converion to go from 10 bit resolution reads to volts on an ESP
-    VoltsA0 = BitsA0 * 3.3 / 1024;
-    VoltsA1 = BitsA1 * 3.3 / 1024;
+    phSense();
+    
+    tempSensor.requestTemperatures();             // send the command to get temperatures
+    BitsA1 = tempSensor.getTempCByIndex(0)+ 1.2;  // read temperature in Celsius
+    VoltsA1 = BitsA1;
+  }
+
+  if ((Device0 == 1) && ((millis() - FeederUpdate) >= 60000*PWMRange)) {
+    //Serial.print("servo on ");
+    servo_1.write(0);
+    FeederUpdate = millis();
+    FeederDelay = FeederUpdate;
+    servo_state = true;
+  }
+  if ((servo_state == true) && ((millis() - FeederDelay) >= 5000)) {
+    //Serial.print("servo off ");
+    servo_1.write(90);
+    servo_state = false;
   }
   
   // no matter what, you must call this handleClient repeatidly--otherwise the web page will not get instructions to do something.
   server.handleClient();
+}
+
+void phSense() {
+  for(int i=0;i<10;i++)       //Get 10 sample value from the sensor for smooth the value
+  {
+    ph_buf[i]=analogRead(PIN_A0);
+  }
+  for(int i=0;i<9;i++)        //sort the analog from small to large
+  {
+    for(int j=i+1;j<10;j++)
+    {
+      if(ph_buf[i]>ph_buf[j])
+      {
+        temp=ph_buf[i];
+        ph_buf[i]=ph_buf[j];
+        ph_buf[j]=temp;
+      }
+    }
+  }
+  avg_phValue=0;
+  for(int i=2;i<8;i++)             //take the average value of 6 center sample
+    avg_phValue+=ph_buf[i];
+  BitsA0=avg_phValue/6;
+  VoltsA0=BitsA0*3.3*3.3/4095-1;   //convert the analog into ph value
 }
 
 // function managed by an .on method to handle slider actions on the web page
@@ -239,11 +307,11 @@ void UpdateSlider() {
 
   // convert the string sent from the web page to an int
   PWMRange = t_state.toInt();
-  Serial.print("UpdateSlider"); Serial.println(PWMRange);
+  // Serial.print("UpdateSlider"); Serial.println(PWMRange);
   // now set the PWM duty cycle
-  // >>>>>>>>>>>>>>>>> For ESP8266
-  analogWrite(PIN_PWM, PWMRange);
-  // >>>>>>>>>>>>>>>>> For ESP32
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[6] For ESP8266
+  // analogWrite(PIN_PWM, PWMRange);
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[6] For ESP32
   // ledcWrite(pwm_ch, PWMRange);
 
   // YOU MUST SEND SOMETHING BACK TO THE WEB PAGE--BASICALLY TO KEEP IT LIVE
@@ -256,9 +324,8 @@ void UpdateSlider() {
   // here is how you send data back immediately and NOT through the general XML page update code.
   // my simple example guesses at fan speed--ideally measure it and send back real data.
   // i avoid strings at all caost, hence all the code to start with "" in the buffer and build a simple piece of data.
-  DutyCycle = map(PWMRange, 0, 255, 0, 100);
   strcpy(buf, "");
-  sprintf(buf, "%d", DutyCycle);
+  sprintf(buf, "%d", PWMRange);
   sprintf(buf, buf);
 
   // now send it back
@@ -297,7 +364,6 @@ void ProcessButton_1() {
   // just a simple way to toggle a LED on/off. Much better ways to do this
   Serial.println("Button 1 press");
   Device1 = !Device1;
-
   digitalWrite(PIN_OUT_1, Device1);
   Serial.print("Button 1 "); Serial.println(Device1);
   // regardless if you want to send stuff back to client or not you must have the send line--as it keeps the page running
@@ -332,15 +398,15 @@ void SendXML() {
 
   strcpy(XML, "<?xml version = '1.0'?>\n<Data>\n");
 
-  // send bitsA0
-  sprintf(buf, "<B0>%d</B0>\n", BitsA0);
+  // send bits0
+  sprintf(buf, "<B0>%d.%d</B0>\n", BitsA0);
   strcat(XML, buf);
   // send Volts0
   sprintf(buf, "<V0>%d.%d</V0>\n", (int) (VoltsA0), abs((int) (VoltsA0 * 10)  - ((int) (VoltsA0) * 10)));
   strcat(XML, buf);
 
   // send bits1
-  sprintf(buf, "<B1>%d</B1>\n", BitsA1);
+  sprintf(buf, "<B1>%d.%d</B1>\n", (int) (BitsA1), abs((int) (BitsA1 * 10)  - ((int) (BitsA1) * 10)));
   strcat(XML, buf);
   // send Volts1
   sprintf(buf, "<V1>%d.%d</V1>\n", (int) (VoltsA1), abs((int) (VoltsA1 * 10)  - ((int) (VoltsA1) * 10)));

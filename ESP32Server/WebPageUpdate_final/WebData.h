@@ -60,7 +60,7 @@ const char PAGE_MAIN[] PROGMEM = R"=====(
 <!DOCTYPE html>
 <html lang="en" class="js-focus-visible">
 
-<title>Web Page Update Demo</title>
+<title>Aquamate Sensor Portal</title>
 
   <style>
     table {
@@ -134,17 +134,17 @@ const char PAGE_MAIN[] PROGMEM = R"=====(
       line-height: 50px;
       padding-left: 20px;
     }
-   .navheading {
-     position: fixed;
-     left: 60%;
-     height: 50px;
-     font-family: "Verdana", "Arial", sans-serif;
-     font-size: 20px;
-     font-weight: bold;
-     line-height: 20px;
-     padding-right: 20px;
-   }
-   .navdata {
+    .navheading {
+      position: fixed;
+      left: 60%;
+      height: 50px;
+      font-family: "Verdana", "Arial", sans-serif;
+      font-size: 20px;
+      font-weight: bold;
+      line-height: 20px;
+      padding-right: 20px;
+    }
+    .navdata {
       justify-content: flex-end;
       position: fixed;
       left: 70%;
@@ -154,7 +154,7 @@ const char PAGE_MAIN[] PROGMEM = R"=====(
       font-weight: bold;
       line-height: 20px;
       padding-right: 20px;
-   }
+    }
     .category {
       font-family: "Verdana", "Arial", sans-serif;
       font-weight: bold;
@@ -169,7 +169,6 @@ const char PAGE_MAIN[] PROGMEM = R"=====(
       font-size: 28px;
       text-align: left;
     }
-  
     .btn {
       background-color: #444444;
       border: none;
@@ -225,7 +224,7 @@ const char PAGE_MAIN[] PROGMEM = R"=====(
     </header>
   
     <main class="container" style="margin-top:70px">
-      <div class="category">Sensor Readings</div>
+      <div class="category">Dashboard</div>
 
       <div style="border-radius: 10px !important;">
         <table style="width:50%">
@@ -238,52 +237,50 @@ const char PAGE_MAIN[] PROGMEM = R"=====(
         <col span="2"style="background-color:rgb(0,0,0); color:#FFFFFF">
         <col span="2"style="background-color:rgb(0,0,0); color:#FFFFFF">
         <tr>
-          <th colspan="1"><div class="heading">Sensor</div></th>
-          <th colspan="1"><div class="heading">Bits</div></th>
-          <th colspan="1"><div class="heading">Volts</div></th>
+          <th colspan="1"><div class="heading">Device</div></th>
+          <th colspan="1"><div class="heading">Value</div></th>
         </tr>
         <tr>
           <td><div class="bodytext">pH Sensor</div></td>
-          <td><div class="tabledata" id = "b0"></div></td>
           <td><div class="tabledata" id = "v0"></div></td>
         </tr>
         <tr>
           <td><div class="bodytext">Temperature sensor</div></td>
-          <td><div class="tabledata" id = "b1"></div></td>
           <td><div class="tabledata" id = "v1"></div></td>
         </tr>
         <tr>
-          <td><div class="bodytext">Device 0</div></td>
+          <td><div class="bodytext">Feeder</div></td>
           <td><div class="tabledata" id = "switch0"></div></td>
         </tr>
-        <tr>
-          <td><div class="bodytext">Device 1</div></td>
+        <!-- <tr>
+          <td><div class="bodytext">Light</div></td>
           <td><div class="tabledata" id = "switch1"></div></td>
-        </tr>
+        </tr> -->
         </table>
       </div>
 
       <br>
       <div class="category">Device Controls</div>
       <br>
-      <div class="bodytext">Switch 0</div>
+      <div class="bodytext">Feeder</div>
         <button type="button" class = "btn" id = "btn0" onclick="ButtonPress0()">Toggle</button>
       </div>
-      <br>
-      <div class="bodytext">Switch 1</div>
+      <!-- <br>
+      <div class="bodytext">Light</div>
         <button type="button" class = "btn" id = "btn1" onclick="ButtonPress1()">Toggle</button>
-      </div>
+      </div> -->
       <br>
       <br>
-      <div class="bodytext">Fish Feeding Interval Control (Interval : <span id="fanrpm"></span> mins)</div>
       <br>
-        <input type="range" class="fanrpmslider" min="0" max="255" value = "0" width = "0%" oninput="UpdateSlider(this.value)"/>
+      <div class="bodytext">Fish Feeding Interval Control (Interval : <span id="fanrpm"></span> Hours)</div>
+      <br>
+        <input type="range" class="fanrpmslider" min="0" max="24" value = "0" width = "0%" oninput="UpdateSlider(this.value)"/>
       <br>
       <br>
 
     </main>
 
-    <footer div class="foot" id = "temp" >Aquamate (PVT) LTD, powered by ESP8266</div></footer>
+    <footer div class="foot" id = "temp" >Aquamate (PVT) LTD, powered by ESP32</div></footer>
 
   </body>
 
@@ -383,53 +380,55 @@ const char PAGE_MAIN[] PROGMEM = R"=====(
       document.getElementById("date").innerHTML = dt.toLocaleDateString();
   
       // A0
-      xmldoc = xmlResponse.getElementsByTagName("B0"); //bits for A0
+      xmldoc = xmlResponse.getElementsByTagName("V0"); //volts for A0
       message = xmldoc[0].firstChild.nodeValue;
       
-      if (message > 512){
+      if (message > 9){
+        color = "#aa0000";
+      }
+      else if (message < 5){
         color = "#aa0000";
       }
       else {
         color = "#0000aa";
       }
       
-      barwidth = message / 10.24;
-      document.getElementById("b0").innerHTML=message;
-      document.getElementById("b0").style.width=(barwidth+"%");
-      // if you want to use global color set above in <style> section
-      // otherwise uncomment and let the value dictate the color
-      document.getElementById("b0").style.backgroundColor=color;
-      //document.getElementById("b0").style.borderRadius="5px";
-      
-      xmldoc = xmlResponse.getElementsByTagName("V0"); //volts for A0
-      message = xmldoc[0].firstChild.nodeValue;
+      barwidth = message / 0.14;
       document.getElementById("v0").innerHTML=message;
       document.getElementById("v0").style.width=(barwidth+"%");
       // you can set color dynamically, maybe blue below a value, red above
       document.getElementById("v0").style.backgroundColor=color;
       //document.getElementById("v0").style.borderRadius="5px";
+
+      //xmldoc = xmlResponse.getElementsByTagName("B0"); //bits for A0
+      //message = xmldoc[0].firstChild.nodeValue;
+      //document.getElementById("b0").innerHTML=message;
+      //document.getElementById("b0").style.width=(barwidth+"%");
+      // if you want to use global color set above in <style> section comment below line, otherwise uncomment and let the value dictate the color.
+      //document.getElementById("b0").style.backgroundColor=color;
+      //document.getElementById("b0").style.borderRadius="5px";
   
       // A1
-      xmldoc = xmlResponse.getElementsByTagName("B1");
+      xmldoc = xmlResponse.getElementsByTagName("V1");
       message = xmldoc[0].firstChild.nodeValue;
-      if (message > 512){
+      if (message > 30){
         color = "#aa0000";
       }
       else {
         color = "#0000aa";
       }
-      document.getElementById("b1").innerHTML=message;
-      width = message / 10.24;
-      document.getElementById("b1").style.width=(width+"%");
-      document.getElementById("b1").style.backgroundColor=color;
-      //document.getElementById("b1").style.borderRadius="5px";
-      
-      xmldoc = xmlResponse.getElementsByTagName("V1");
-      message = xmldoc[0].firstChild.nodeValue;
-      document.getElementById("v1").innerHTML=message;
+      width = message / .5;
+      document.getElementById("v1").innerHTML=message+' '+'\xB0'+'C';
       document.getElementById("v1").style.width=(width+"%");
       document.getElementById("v1").style.backgroundColor=color;
       //document.getElementById("v1").style.borderRadius="5px";
+
+      //xmldoc = xmlResponse.getElementsByTagName("B1");
+      //message = xmldoc[0].firstChild.nodeValue;
+      //document.getElementById("b1").innerHTML=message;
+      //document.getElementById("b1").style.width=(width+"%");
+      //document.getElementById("b1").style.backgroundColor=color;
+      //document.getElementById("b1").style.borderRadius="5px";
 
       //Device0
       xmldoc = xmlResponse.getElementsByTagName("DEVICE0");
