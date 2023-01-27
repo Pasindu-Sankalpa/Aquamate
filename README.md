@@ -11,5 +11,5 @@ Please refer the documents for more information
 
 Visit <http://aquamate-global.web.app/>
 
-![AquaMate indoor unit](AquaMateDiagram.PNG)
+![AquaMate indoor unit](AquaMate%20Diagram.png)
 ![AquaMate server](ESP32Server/screen.jpeg)
