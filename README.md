@@ -4,3 +4,12 @@ Although it is unpopular, fish breeding is an important source of foreign exchan
 
 
 Temperature of water, pH level and turbidity are the main parameters which the fish breeders should keep on track regarding the safety of their farm. But as we observed, there is no such system deployed to measure these parameters in real time even in mass scale aquariums in Sri Lanka. Hence, this can lead to economic disasters if a parameter change happens. Another problem we can identify is the need of employees for feeding. Commonly, feeding is done once or twice per day. Therefore, if we can automate this process, it would be beneficial for the farm owners.
+
+Our solution is Aquamate. A monitoring and automatic feeding system for mass scale aquariums in Sri Lanka.
+
+Please refer the documents for more information
+
+Visit <http://aquamate-global.web.app/>
+
+![AquaMate indoor unit](AquaMate%20Diagram.PNG)
+![AquaMate server](ESP32Server/screen.jpeg)
