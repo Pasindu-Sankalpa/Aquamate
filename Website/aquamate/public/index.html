@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Aquamate.inc</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Comfortaa:700" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div id="loading">
+        <div id="spinner"></div>
+    </div>
+    <div id="header" class="animated slideInDown" style="animation-delay:1.8s;">
+        <div id="title">Aquamate</div><br>
+        <div id="links">
+            <a href="#how">How to Use</a>
+            <a href="#project" style="margin:0px 60px;">Project Details</a>
+            <a href="#about">About Us</a>
+        </div>
+        <button class="btn_one" type="button" id="Addbtn" onclick="createInput()"> + Add Tank</button>
+        <button class="btn_one" type="button" id="Removebtn"> - Remove Tank</button>
+    </div>
+
+    <div id="middle">
+        <div id="tagline" class="animated zoomIn" style="animation-delay:1.8s;">
+        </div>
+    </div>
+
+    <div id="portfolio">
+        <div id="how">
+            <h1>How to use</h1>   
+            <div>
+                <ol>
+                    <li>Power up the Aquamate device.</li>
+                    <li>Connect to the desired local network.</li>
+                    <ol>
+                        <li>Use any Wi-Fi enabled device(Ex: Smart phone, laptop) and turn on Wi-Fi.</li>
+                        <li>Search available Wi-Fi networks.</li>
+                        <li>Connect to the "Aquamate tank {id}" with the password "11111111".</li>
+                        <li>Go the IP address "10.0.1.1" or use the URL <a href="http://10.0.1.1" target="_blank">http://10.0.1.1</a></li>
+                        <li>Click on "Configure WiFi"</li>
+                        <li>Select desired WiFi network & enter password.</li>
+                        <li>Click on "Save"</li>
+                    </ol>
+                    <li>Now you click on above relevent tank to view it's details.</li>
+                </ol>
+                <p><span style="color:#FF0000">Note:</span> You have to do this only once, unless there is a password change in desired network.</p>
+            </div>
+        </div>
+         
+        <div id="project">
+            <h1>Project Details</h1>
+            <div class="project">
+                <h2>ESP32 Web Server</h2>
+                <div>After connect to the local network, a web server will run in ESP32 chip & the data will be updated realtime.</div>
+                <button class="btn_one" onclick="window.open('https://github.com/Pasindu-Sankalpa/Aquamate/tree/main/ESP32Server');">Github link</button>
+            </div>
+
+            <div class="project">
+                <h2>PCB Design</h2>
+                <div>There are 2 PCBs inside the Main enclosure.</div>
+                <ul>
+                    <li>PCB with ESP32 Chip (designed by our team)</li>
+                    <li>PCB coming with pH sensor.</li>
+                </ul>
+                <button class="btn_one" onclick="window.open('https://github.com/Pasindu-Sankalpa/Aquamate/tree/main/Altium%20Design');">Github link</button>
+            </div>
+
+            <div class="project">
+                <h2>Enclosure Design</h2>
+                <div>There are 2 enclosures for each tank.</div>
+                <ul>
+                    <li>Enclosure for 2 PCBs</li>
+                    <li>Enclosure for fish feeder</li>
+                </ul>
+                <button class="btn_one" onclick="window.open('https://github.com/Pasindu-Sankalpa/Aquamate/tree/main/Solidworks%20Design');">Github link</button>
+            </div>
+
+            <div class="project">
+                <h2>Website Development</h2>
+                <div>This one page website is developed & deployed using google firebase.</div>
+                <button class="btn_one" onclick="window.open('https://github.com/Pasindu-Sankalpa/Aquamate/tree/main/Website');">Github link</button>
+            </div>
+
+        </div>
+    
+        <div id="about">
+            <h1>About Us</h1>
+            <div>We are group Voyager-3</div>
+            <div>This project is developed as a partial fullment of the module EN3023 - Electronic Design Realization</div>
+            <div id="details">
+                <a class="btn_social"><i class="fas fa-phone"></i></a>
+                <a class="btn_social"><i class="fas fa-at"></i></a>
+                <a class="btn_social"><i class="fab fa-twitter"></i></a>
+                <a class="btn_social"><i class="fab fa-dribbble"></i></a>
+            </div>   
+        </div>
+    </div>
+    <div id="footer">
+        Copyright &copy; 2023 <br><br> <a href="">Aquamate.com</a>
+    </div>
+<script src="index.js" type="text/javascript"></script>
+</body>
+</html>
